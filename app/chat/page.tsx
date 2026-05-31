@@ -15,7 +15,7 @@ export default function ChatPage() {
     {
       id: 0,
       from: "minddumper",
-      text: "hey, tum yahaan ho — that's enough for now. kya chal raha hai?",
+      text: "hey, I'm really glad you're here. there's no rush, and nothing you say is too much. take a breath… kya chal raha hai, yaar?",
     },
   ]);
   // What the person is currently typing.
