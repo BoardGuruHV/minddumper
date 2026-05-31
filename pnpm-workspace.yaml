@@ -1,2 +1,8 @@
+# Single-app repo (no real workspaces). This file carries two pnpm settings:
+#  - allowBuilds: approve sharp's native build script non-interactively (pnpm v11).
+#  - strictDepBuilds: false — don't FAIL install if a build script is skipped;
+#    warn instead. sharp is Next.js's optional image library; we use no images,
+#    so a skipped sharp build must never break `pnpm install` / `pnpm build`.
 allowBuilds:
-  sharp: set this to true or false
+  sharp: true
+strictDepBuilds: false
