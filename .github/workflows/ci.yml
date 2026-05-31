@@ -13,10 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install pnpm BEFORE setup-node, so Node's pnpm cache can find it.
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.1.2
 
       - name: Use Node 22
         uses: actions/setup-node@v4
