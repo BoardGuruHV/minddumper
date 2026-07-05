@@ -29,26 +29,60 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, thinking]);
 
-  // Send the typed message, then echo it back 1 second later.
-  function send() {
+  // Send the typed message and stream MindDumper's reply into a new bubble.
+  async function send() {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || thinking) return;
 
     const mine: Message = { id: Date.now(), from: "you", text };
-    setMessages((prev) => [...prev, mine]);
+    const history = [...messages, mine];
+    setMessages(history);
     setDraft("");
     setThinking(true);
 
-    // No real AI yet — just echo the same words back as MindDumper.
-    setTimeout(() => {
-      const reply: Message = {
-        id: Date.now() + 1,
-        from: "minddumper",
-        text,
-      };
-      setMessages((prev) => [...prev, reply]);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: history.map(({ from, text }) => ({ from, text })),
+        }),
+      });
+      if (!res.ok || !res.body) throw new Error(await res.text());
+
+      // Add an empty bubble, then fill it word by word as text streams in.
+      const replyId = Date.now() + 1;
+      setMessages((prev) => [
+        ...prev,
+        { id: replyId, from: "minddumper", text: "" },
+      ]);
       setThinking(false);
-    }, 1000);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === replyId ? { ...m, text: m.text + chunk } : m
+          )
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 2,
+          from: "minddumper",
+          text: "sorry yaar, I lost my train of thought for a moment. can you say that again?",
+        },
+      ]);
+    } finally {
+      setThinking(false);
+    }
   }
 
   return (
