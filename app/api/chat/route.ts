@@ -81,7 +81,14 @@ export async function POST(req: Request) {
       buffer = lines.pop() ?? ""; // keep any half-received line for next time
       for (const line of lines) {
         const data = line.replace(/^data: ?/, "").trim();
-        if (!line.startsWith("data:") || !data || data === "[DONE]") continue;
+        if (!line.startsWith("data:") || !data) continue;
+        // OpenRouter may keep the connection open after the reply, so end
+        // the stream ourselves as soon as it signals it is done.
+        if (data === "[DONE]") {
+          controller.close();
+          reader.cancel();
+          return;
+        }
         try {
           const delta = JSON.parse(data).choices?.[0]?.delta?.content;
           if (delta) controller.enqueue(encoder.encode(delta));
