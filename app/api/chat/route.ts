@@ -82,16 +82,24 @@ export async function POST(req: Request) {
       for (const line of lines) {
         const data = line.replace(/^data: ?/, "").trim();
         if (!line.startsWith("data:") || !data) continue;
-        // OpenRouter may keep the connection open after the reply, so end
-        // the stream ourselves as soon as it signals it is done.
+        // OpenRouter may keep the connection open after the reply (some
+        // models never send [DONE]), so end the stream ourselves on either
+        // end-of-reply signal: the [DONE] marker or a finish_reason.
         if (data === "[DONE]") {
           controller.close();
           reader.cancel();
           return;
         }
         try {
-          const delta = JSON.parse(data).choices?.[0]?.delta?.content;
-          if (delta) controller.enqueue(encoder.encode(delta));
+          const choice = JSON.parse(data).choices?.[0];
+          if (choice?.delta?.content) {
+            controller.enqueue(encoder.encode(choice.delta.content));
+          }
+          if (choice?.finish_reason) {
+            controller.close();
+            reader.cancel();
+            return;
+          }
         } catch {
           // Ignore non-JSON keep-alive lines.
         }
